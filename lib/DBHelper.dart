@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:janzer/main.dart';
+import 'package:janzer/database_model.dart';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DBHelper {
   static Database db_instance;
@@ -23,6 +25,7 @@ class DBHelper {
     return db;
   }
 
+
   void onCreateFunc(Database db, int version) async {
     await db.execute('CREATE TABLE $TABLE_NAME'
         '(id INTEGER PRIMARY KEY,'
@@ -38,7 +41,9 @@ class DBHelper {
         'pressure TEXT, '
         'humidity TEXT, '
         'dust TEXT, '
-        'zivert TEXT )');
+        'zivert TEXT, '
+        'longitude TEXT, '
+        'latitude TEXT )');
 
   }
 
@@ -63,14 +68,34 @@ class DBHelper {
       databaseModel.humidity = list[i]['humidity'];
       databaseModel.dust = list[i]['dust'];
       databaseModel.sievert = list[i]['zivert'];
+      databaseModel.longitude = list[i]['longitude'];
+      databaseModel.latitude = list[i]['latitude'];
 
       databaseModelS.add(databaseModel);
     }
+
     return databaseModelS;
+  }
+  Future<double> getLongitude(int index) async {
+    var dbConnection = await db;
+    List<Map> list = await dbConnection.rawQuery('SELECT * FROM $TABLE_NAME');
+    double longitude = double.parse(list[index]['longitude']);
+    return longitude;
+
+  }
+  Future<double> getLatitude(int index) async {
+    var dbConnection = await db;
+    List<Map> list = await dbConnection.rawQuery('SELECT * FROM $TABLE_NAME');
+    double latitude = double.parse(list[index]['latitude']);
+    return latitude;
   }
 
   void addNewContact(DatabaseModel databaseModel) async {
     var db_connection = await db;
+    List<Map> list = await db_connection.rawQuery('SELECT * FROM $TABLE_NAME');
+    int count = list.length;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('count', count);
     String query = 'INSERT INTO '
         '$TABLE_NAME(realTime, '
         'moduleDate, '
@@ -84,7 +109,9 @@ class DBHelper {
         'temperature, '
         'pressure, '
         'dust, '
-        'zivert) '
+        'zivert, '
+        'longitude, '
+        'latitude) '
         'VALUES( \'${databaseModel.realTime}\','
         '\'${databaseModel.moduleDate}\', '
         '\'${databaseModel.moduleTime}\','
@@ -97,7 +124,9 @@ class DBHelper {
         '\'${databaseModel.pressure}\', '
         '\'${databaseModel.humidity}\','
         '\'${databaseModel.dust}\','
-        '\'${databaseModel.sievert}\')';
+        '\'${databaseModel.sievert}\','
+        '\'${databaseModel.longitude}\','
+        '\'${databaseModel.latitude}\')';
     await db_connection.transaction((transition) async {
       return await transition.rawInsert(query);
     });
@@ -119,7 +148,9 @@ class DBHelper {
         '\'${databaseModel.pressure}\', '
         '\'${databaseModel.humidity}\','
         '\'${databaseModel.dust}\','
-        '\'${databaseModel.sievert}\' WHERE id = ${databaseModel.id}';
+        '\'${databaseModel.sievert}\','
+        '\'${databaseModel.longitude}\','
+        '\'${databaseModel.latitude}\' WHERE id = ${databaseModel.id}';
     await db_connection.transaction((transition) async {
       return await transition.rawQuery(query);
     });

@@ -14,7 +14,7 @@ description: A new Flutter application.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.1.0 <3.0.0"
+  sdk: ">=2.2.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -27,6 +27,8 @@ dependencies:
   permission_handler: ^3.2.2
   sqflite: ^1.1.7+1
   fluttertoast: any
+  shared_preferences: ^0.5.4+3
+  flutter_speed_dial: ^1.2.4
 
 
   # The following adds the Cupertino Icons font to your application.
