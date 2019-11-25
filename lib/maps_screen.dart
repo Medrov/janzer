@@ -17,6 +17,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
+class ListStructure {
+  dynamic key;
+  dynamic values;
+
+  ListStructure(this.key, this.values);
+}
+
 class MapsDefaultScreen extends StatefulWidget {
   @override
   _MapsDefaultScreenState createState() => _MapsDefaultScreenState();
@@ -26,12 +33,10 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     with SingleTickerProviderStateMixin {
   Completer<GoogleMapController> _controller = Completer();
   final islocationpermission = false;
-
   static const LatLng _center = const LatLng(55.7504461, 37.6174943);
   MapType _currentMapType = MapType.normal;
   Set<Marker> _markers = Set();
   LatLng _lastMapPosition = _center;
-  Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   String _fileName;
   String _path;
   Map<String, String> _paths;
@@ -62,15 +67,37 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
   int id;
   var numberOfLines;
   String readPath;
+  int countOfDB;
+  Map<double, double> coordinates = new Map();
+  Map<int, double> coordinatesLatitude = new Map();
+  Map<int, double> coordinatesLongitude = new Map();
+  List<ListStructure> list = new List<ListStructure>();
+  var icons = [
+    Icons.timelapse,
+    Icons.date_range,
+    Icons.timeline,
+    Icons.today,
+    Icons.gps_fixed,
+    Icons.satellite,
+    Icons.av_timer,
+    Icons.center_focus_weak,
+    Icons.present_to_all,
+    Icons.device_hub,
+    Icons.data_usage,
+    Icons.assistant_photo,
+    Icons.assistant_photo
+  ];
+  var sets = new List(13);
 
   @override
   void initState() {
     super.initState();
-    showAllMarkers();
+    setMarkers();
     _controllerText.addListener(() => _extension = _controllerText.text);
     PermissionHandler()
         .checkPermissionStatus(PermissionGroup.locationWhenInUse)
         .then(_updateStatus);
+    _askPermission();
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -96,7 +123,7 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
               child: Icon(Icons.shuffle),
               backgroundColor: Colors.amber,
               onTap: () {
-               showAllMarkers();
+                setMarkers();
               },
               label: 'Обновить',
               labelStyle: TextStyle(
@@ -111,7 +138,7 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
               onTap: () async {
                 bool checker = false;
                 var state = await _openFileExplorer(checker);
-                if(state){
+                if (state) {
                   _read(readPath);
                 }
               },
@@ -126,33 +153,131 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     );
   }
 
-  void gpsHelper(String text, int count) async {
-    LineSplitter ls = new LineSplitter();
-    _masForUsing = ls.convert(text);
-    realTime = _masForUsing[1];
-    gpsCoordinates = _masForUsing[2];
-    gpsSatellites = _masForUsing[3];
-    gpsTime = _masForUsing[4];
-    gpsDate = _masForUsing[5];
-    temperature = _masForUsing[6];
-    pressure = _masForUsing[7];
-    humidity = _masForUsing[8];
-    dust = _masForUsing[9];
-    sievert = _masForUsing[10];
-    print(_masForUsing[0]);
-    print(_masForUsing[1]);
-    print(_masForUsing[2]);
-    print(_masForUsing[3]);
-    print(_masForUsing[4]);
-    print(_masForUsing[5]);
-    print(_masForUsing[6]);
-    print(_masForUsing[7]);
-    print(_masForUsing[8]);
-    print(_masForUsing[9]);
-    print(_masForUsing[10]);
-    print(_masForUsing[11]);
+  void showAlert(){
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => new Dialog(
+        backgroundColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        elevation: 0.0,
+        child: new Stack(
+          children: <Widget>[
+            Container(
+              padding: EdgeInsets.only(
+                top: 32.0,
+                bottom: 16.0,
+                left: 16.0,
+                right: 16.0,
+              ),
+              margin: EdgeInsets.only(top: 16.0),
+              decoration: new BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.circular(16.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 16.0,
+                    offset: const Offset(0.0, 16.0),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize
+                    .min, // To make the card compact
+                children: <Widget>[
+                  Text(
+                    "Информация",
+                    style: TextStyle(
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blueAccent),
+                  ),
+                  SizedBox(height: 16.0),
+                  Text(
+                    "Не удалось загрузить данные, аппарат не может найти спутники!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16.0,
+                    ),
+                  ),
+                  SizedBox(height: 24.0),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: RaisedButton(
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(16.0)),
+                      color: Colors.blueAccent,
+                      onPressed: () {
+                        Navigator.of(context)
+                            .pop(); // To close the dialog
+                      },
+                      child: Text(
+                        "ОК",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
   }
 
+  void gpsHelper(String text, int count) async {
+    List _masForUsingTime, _masForUsingFinal, _masForUsingFinalCordinates,
+        _masForGpsSatellites, _masForGpsTime, _masForGpsDate,
+        _masForTemperature, _masForPressure, _masForHumidity, _masForDust,
+        _masForSievert;
+
+    LineSplitter ls = new LineSplitter();
+    _masForUsing = ls.convert(text);
+    for(int i = 0; i < 11; i++)
+      print(_masForUsing[i]);
+    _masForUsingTime = _masForUsing[1].split(",");
+    moduleDate = _masForUsingTime[1]; moduleTime = _masForUsingTime[2]; moduleDay = _masForUsingTime[3];
+    if (moduleDay == " Mon") moduleDay = "Понедельник";
+    else if (moduleDay == " Tue") moduleDay = "Вторник";
+    else if (moduleDay == " Wed") moduleDay = "Среда";
+    else if (moduleDay == " Thu") moduleDay = "Четверг";
+    else if (moduleDay == " Fri") moduleDay = "Пятница";
+    else if (moduleDay == " Sat") moduleDay = "Суббота";
+    else if (moduleDay == " Sun") moduleDay = "Воскресенье";
+    print(moduleDate); print(moduleTime); print(moduleDay);
+    _masForUsingFinal = _masForUsing[2].split(":");
+    _masForUsingFinalCordinates = _masForUsingFinal[1].split(";");
+
+    if(_masForUsingFinalCordinates[0] == " x" && _masForUsingFinalCordinates[1] == " x"){
+      return showAlert();
+    } else {
+      latitude = double.parse(_masForUsingFinalCordinates[0]);
+      longitude = double.parse(_masForUsingFinalCordinates[1]);
+      _masForGpsSatellites = _masForUsing[3].split(":");
+      _masForGpsTime = _masForUsing[4].split(":");
+      _masForGpsDate = _masForUsing[5].split(":");
+      _masForTemperature = _masForUsing[6].split(":");
+      _masForPressure = _masForUsing[7].split(":");
+      _masForHumidity = _masForUsing[8].split(":");
+      _masForDust = _masForUsing[9].split(":");
+      _masForSievert = _masForUsing[10].split(":");
+      gpsSatellites = _masForGpsSatellites[1];
+      gpsTime = _masForGpsTime[1];
+      gpsDate = _masForGpsDate[1];
+      temperature = _masForTemperature[1];
+      pressure = _masForPressure[1];
+      humidity = _masForHumidity[1];
+      dust = _masForDust[1];
+      sievert = _masForSievert[1];
+      print(latitude); print(longitude);
+    }
+  }
   void sumbitContact() {
     var databaseModel = DatabaseModel();
     var dbHelper = DBHelper();
@@ -174,56 +299,6 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     dbHelper.addNewContact(databaseModel);
   }
 
-  void gpsFinal() {
-    var rng = new Random();
-    var rnglatitude = rng.nextDouble() * 0.05;
-    var rnglongitude = rng.nextDouble() * 0.05;
-    List _masForUsingTime = _masForUsing[1].split(",");
-    moduleDate = _masForUsingTime[1];
-    moduleTime = _masForUsingTime[2];
-    moduleDay = _masForUsingTime[3];
-    print(moduleDate);
-    print(moduleTime);
-    print(moduleDay);
-    List _masForUsingFinal = _masForUsing[2].split(":");
-    List _masForUsingFinalCordinates = _masForUsingFinal[1].split(";");
-    latitude = double.parse(_masForUsingFinalCordinates[0]) + rnglatitude;
-    longitude = double.parse(_masForUsingFinalCordinates[1]) + rnglongitude;
-    print(latitude);
-    print(longitude);
-  }
-
-  void navigateToMap(String path) async {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-          builder: (BuildContext context) => MapsScreen(
-                path: path,
-                latitude: latitude,
-                longitude: longitude,
-                realTime: realTime,
-                moduleDate: moduleDate,
-                moduleTime: moduleTime,
-                moduleDay: moduleDay,
-                gpsCoordinates: gpsCoordinates,
-                gpsSatellites: gpsSatellites,
-                gpsTime: gpsTime,
-                gpsDate: gpsDate,
-                temperature: temperature,
-                pressure: pressure,
-                humidity: humidity,
-                dust: dust,
-                sievert: sievert,
-              )),
-    );
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int count = prefs.getInt('count');
-    for (int i = 0; i < count; i++) {
-      prefs.setDouble('latitude', latitude);
-      prefs.setDouble('longitude', longitude);
-    }
-    _askPermission();
-  }
-
   Future<void> _read(String path) async {
     String text;
     try {
@@ -239,7 +314,6 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     setState(() {
       _dataTxt = text;
       gpsHelper(_dataTxt, numberOfLines);
-      gpsFinal();
       sumbitContact();
     });
   }
@@ -251,7 +325,7 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     });
   }
 
-  Future<bool> _openFileExplorer(bool loadPath ) async {
+  Future<bool> _openFileExplorer(bool loadPath) async {
     loadPath = false;
     if (_pickingType != FileType.CUSTOM || _hasValidMime) {
       setState(() {
@@ -264,7 +338,9 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
           _paths = await FilePicker.getMultiFilePath(
               type: _pickingType, fileExtension: _extension);
           setState(() {
-            readPath = _paths["janzer.txt"];
+            var _list = _paths.keys.toList();
+            String str = "${_list[0].toString()}";
+            readPath = _paths[str];
             print(readPath);
           });
         } else {
@@ -281,7 +357,7 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
         print("Unsupported operation" + e.toString());
       }
       if (!mounted) {
-        setState(() async{
+        setState(() async {
           print("Hey, Man");
           _loadingPath = false;
           loadPath = _loadingPath;
@@ -307,15 +383,13 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
       PermissionGroup.locationWhenInUse,
       PermissionGroup.location
     ]).then(_onStatusRequested);
-    PermissionHandler().requestPermissions([PermissionGroup.location]).then(
-        _onStatusRequested);
+    PermissionHandler().requestPermissions([PermissionGroup.location]).then(_onStatusRequested);
   }
 
   void _onStatusRequested(Map<PermissionGroup, PermissionStatus> value) {
     final status = value[PermissionGroup.locationWhenInUse];
     final statusLoc = value[PermissionGroup.location];
-    if (status != PermissionStatus.granted &&
-        statusLoc != PermissionStatus.granted) {
+    if (status != PermissionStatus.granted && statusLoc != PermissionStatus.granted) {
       PermissionHandler().openAppSettings();
     } else {
       _updateStatus(status);
@@ -323,25 +397,108 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     }
   }
 
-  void showAllMarkers() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int count = prefs.getInt('count');
+  void _showModal(int index) {
+    Future<void> future = showModalBottomSheet<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return FutureBuilder(
+          future: getContactsFromDB(),
+          builder: (context, snapshot) {
+            if (snapshot.data != null && snapshot.hasData) {
+              var snapshots = [
+                "Дата: "+ snapshot.data[index].moduleDate,
+                "Время: "+ snapshot.data[index].moduleTime,
+                "День недели: " + snapshot.data[index].moduleDay,
+                "Широта: " + snapshot.data[index].latitude,
+                "Долгота: " + snapshot.data[index].longitude,
+                "GPS-Satellites: "+ snapshot.data[index].gpsSatellites,
+                "GPS-Time: "+ snapshot.data[index].gpsTime,
+                "GPS-Date: "+ snapshot.data[index].gpsDate,
+                "Температура: "+ snapshot.data[index].temperature,
+                "Давление: "+ snapshot.data[index].pressure,
+                "Влажность: "+ snapshot.data[index].humidity,
+                "Коэффицент пыли: "+ snapshot.data[index].dust,
+                "Радиоционный фон: "+ snapshot.data[index].sievert,
+              ];
+              return Container(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                            "Данные о месте",
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(
+                                fontSize: 21.0,
+                                color: Colors.black
+                            )),
+                      ),
+                      Container(
+                          child: Column(
+                            children: List.generate(13, (int index) {
+                              return Card(
+                                color: Colors.lightBlueAccent,
+                                child: Container(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Row(
+                                    children: <Widget>[
+                                      Icon(icons[index], color: Colors.white),
+                                      Padding(
+                                        padding: EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
+                                        child: Text('${snapshots[index]}', style: new TextStyle(color: Colors.white),),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ))
+                    ],
+                  ),
+                ),
+              );
+            }
+            return new Container(
+              alignment: AlignmentDirectional.center,
+              child: new CircularProgressIndicator(),
+            );
+          }
+        );
+      },
+    );
+    future.then((void value) => _closeModal(value));
+  }
+
+  void _closeModal(void value) {}
+
+  void setMarkers() async {
     var dbHelper = new DBHelper();
-    for (int i = 0; i < count; i++) {
-      double latitude = await dbHelper.getLatitude(i);
-      double longitude = await dbHelper.getLatitude(i);
-      final MarkerId markerId =
-          MarkerId("${latitude.toString()}, ${longitude.toString()}");
-      final Marker resultMarker = Marker(
-        markerId: markerId,
-        draggable: true,
-        icon:
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueMagenta),
-        position: LatLng(latitude, longitude),
-      );
-      markers[markerId] = resultMarker;
-      _markers.add(resultMarker);
-    }
+    var notes = await dbHelper.getContacts();
+    List<Marker> markers = notes.map((n) {
+      double latitude = double.parse(n.latitude);
+      double longitude = double.parse(n.longitude);
+      print(latitude);
+      print(longitude);
+      LatLng point =
+          LatLng(latitude, longitude);
+      MarkerId markerId = MarkerId("${n.latitude}, ${n.longitude}");
+      return Marker(
+          markerId: markerId,
+          draggable: true,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          position: point,
+          onTap: () {
+            _showModal(n.id - 1);
+          });
+
+    }).toList();
+    setState(() {
+      _markers.clear();
+      notes.asMap().forEach((index, value) => _markers.add(markers[index]));
+      print(_markers);
+    });
   }
 
   @override
@@ -355,14 +512,9 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
             scrollGesturesEnabled: true,
             tiltGesturesEnabled: true,
             rotateGesturesEnabled: true,
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>[
-              Factory<OneSequenceGestureRecognizer>(
-                  () => ScaleGestureRecognizer())
-            ].toSet(),
             compassEnabled: true,
             onCameraMove: _onCameraMove,
-            markers: Set<Marker>.of(markers.values),
-            // trackCameraPosition: true,
+            markers: _markers,
             zoomGesturesEnabled: true,
             initialCameraPosition: CameraPosition(
               target: _center,
@@ -373,279 +525,5 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
         ],
       ),
     );
-  }
-}
-
-class MapsScreen extends StatefulWidget {
-  final String path;
-  double latitude;
-  double longitude;
-  String realTime,
-      moduleDate,
-      moduleTime,
-      moduleDay,
-      gpsCoordinates,
-      gpsSatellites,
-      gpsTime,
-      gpsDate,
-      temperature,
-      pressure,
-      humidity,
-      dust,
-      sievert;
-
-  MapsScreen(
-      {Key key,
-      @required this.path,
-      @required this.latitude,
-      @required this.longitude,
-      @required this.realTime,
-      @required this.moduleDate,
-      @required this.moduleTime,
-      @required this.moduleDay,
-      @required this.gpsCoordinates,
-      @required this.gpsSatellites,
-      @required this.gpsTime,
-      @required this.gpsDate,
-      @required this.temperature,
-      @required this.pressure,
-      @required this.humidity,
-      @required this.dust,
-      @required this.sievert})
-      : super(key: key);
-
-  @override
-  State<MapsScreen> createState() => MapsScreenState();
-}
-
-class MapsScreenState extends State<MapsScreen>
-    with SingleTickerProviderStateMixin {
-  Set<Marker> allMarkers = Set();
-  GoogleMapController _controller;
-  PersistentBottomSheetController controller;
-  var dbHelper = DBHelper();
-  var icons = [
-    Icons.timelapse,
-    Icons.date_range,
-    Icons.timeline,
-    Icons.today,
-    Icons.gps_fixed,
-    Icons.satellite,
-    Icons.av_timer,
-    Icons.center_focus_weak,
-    Icons.present_to_all,
-    Icons.device_hub,
-    Icons.data_usage,
-    Icons.assistant_photo,
-    Icons.assistant_photo
-  ];
-  var sets = new List(13);
-
-  Future<void> showAllMarkers() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int count = prefs.getInt('count');
-    var dbHelper = new DBHelper();
-    for (int i = 0; i < count; i++) {
-      double latitude = await dbHelper.getLatitude(i);
-      double longitude = await dbHelper.getLatitude(i);
-      Marker resultMarker = Marker(
-        markerId: MarkerId("${latitude.toString()}, ${longitude.toString()}"),
-        draggable: true,
-        onTap: () {
-          _showModal();
-        },
-        icon:
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueMagenta),
-        position: LatLng(latitude, longitude),
-      );
-      allMarkers.add(resultMarker);
-    }
-  }
-
-  void _showModal() {
-    Future<void> future = showModalBottomSheet<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text("Данные о месте",
-                      textAlign: TextAlign.center,
-                      style:
-                          new TextStyle(fontSize: 21.0, color: Colors.black)),
-                ),
-                Container(
-                    child: Column(
-                  children: List.generate(13, (int index) {
-                    return Card(
-                      color: Colors.lightBlueAccent,
-                      child: Container(
-                        padding: EdgeInsets.all(16.0),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(icons[index], color: Colors.white),
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
-                              child: Text(
-                                '${sets[index]}',
-                                style: new TextStyle(color: Colors.white),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                ))
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    future.then((void value) => _closeModal(value));
-  }
-
-  void _closeModal(void value) {}
-
-  Future<List<DatabaseModel>> getContactsFromDB() async {
-    var dbHelper = DBHelper();
-    Future<List<DatabaseModel>> contacts = dbHelper.getContacts();
-    return contacts;
-  }
-
-  @override
-  void initState() {
-    sets[0] = "Дата: " + widget.moduleDate;
-    sets[1] = "Время: " + widget.moduleTime;
-    switch (widget.moduleDay) {
-      case "Mon":
-        sets[2] = "День недели: Понедельник";
-        break;
-      case "Tue":
-        sets[2] = "День недели: Вторник";
-        break;
-      case "Wed":
-        sets[2] = "День недели: Среда";
-        break;
-      case "Thu":
-        sets[2] = "День недели: Четверг";
-        break;
-      case "Fri":
-        sets[2] = "День недели: Пятница";
-        break;
-      case "Sat":
-        sets[2] = "День недели: Суббота";
-        break;
-      case "Sun":
-        sets[2] = "День недели: Воскресенье";
-        break;
-    }
-    sets[2] = "День недели: Пятница";
-    sets[3] = "Широта: " + widget.latitude.toString();
-    sets[4] = "Долгота: " + (widget.longitude * 1).toString();
-    List _masForGpsSatellites = widget.gpsSatellites.split(":");
-    List _masForGpsTime = widget.gpsTime.split(":");
-    List _masForGpsDate = widget.gpsDate.split(":");
-    List _masForTemperature = widget.temperature.split(":");
-    List _masForPressure = widget.pressure.split(":");
-    List _masForHumidity = widget.humidity.split(":");
-    List _masForDust = widget.dust.split(":");
-    List _masForSievert = widget.sievert.split(":");
-    sets[5] = "GPS-Satellites: " + _masForGpsSatellites[1];
-    sets[6] = "GPS-Time: " + _masForGpsTime[1];
-    sets[7] = "GPS-Date: " + _masForGpsDate[1];
-    sets[8] = "Температура: " + _masForTemperature[1];
-    sets[9] = "Давление: " + _masForPressure[1];
-    sets[10] = "Влажность: " + _masForHumidity[1];
-    sets[11] = "Коэффицент пыли: " + _masForDust[1];
-    sets[12] = "Радиоционный фон: " + _masForSievert[1];
-    // TODO: implement initState
-    super.initState();
-    print(allMarkers.length);
-  }
-
-  void showInSnackBar(String value) {
-    print(value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    showInSnackBar(widget.path);
-    showAllMarkers();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Maps'),
-      ),
-      body: Stack(children: [
-        Container(
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
-          child: GoogleMap(
-            scrollGesturesEnabled: true,
-            tiltGesturesEnabled: true,
-            rotateGesturesEnabled: true,
-            compassEnabled: true,
-            initialCameraPosition:
-                CameraPosition(target: LatLng(0, 0), zoom: 12.0),
-            markers: Set.from(allMarkers),
-            onMapCreated: mapCreated,
-          ),
-        ),
-        Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16.0, 16.0, 0.0, 32.0),
-              child: InkWell(
-                onTap: movetoNewYork,
-                child: Container(
-                  height: 55.0,
-                  width: 55.0,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30.0),
-                      color: Colors.deepPurpleAccent),
-                  child: Icon(Icons.open_in_browser, color: Colors.white),
-                ),
-              ),
-            )),
-        Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(0.0, 0.0, 24.0, 32.0),
-              child: FloatingActionButton(
-                onPressed: movetoNewYork,
-                backgroundColor: Colors.amber,
-                child: Icon(Icons.shuffle, color: Colors.white),
-              ),
-            )),
-      ]),
-    );
-  }
-
-  void mapCreated(controller) {
-    setState(() {
-      _controller = controller;
-    });
-  }
-
-  movetoNewScreen() {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (BuildContext context) => DatabaseScreen()));
-  }
-
-  movetoAllPoints() {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (BuildContext context) => DatabaseScreen()));
-  }
-
-  movetoNewYork() {
-    _controller.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(
-          target: LatLng(widget.latitude, widget.longitude), zoom: 12.0),
-    ));
   }
 }

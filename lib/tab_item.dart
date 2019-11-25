@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:janzer/main_screen.dart';
-import 'package:janzer/maps_screen.dart';
-import 'package:janzer/settings_screen.dart';
 
 class TabItem extends StatefulWidget {
   TabItem(
@@ -10,12 +7,6 @@ class TabItem extends StatefulWidget {
         @required this.index,
         @required this.callbackFunction});
 
-//  var screens = [
-//    MainScreen(),
-//    //MapsScreen(),
-//    SettingsScreen(),
-//    SettingsScreen()
-//  ];
   int index;
   IconData iconData;
   bool selected;

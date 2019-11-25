@@ -5,7 +5,7 @@ import 'dart:async';
 
 void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget with WidgetsBindingObserver{
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

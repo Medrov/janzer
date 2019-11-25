@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:janzer/bottom_animation.dart';
 import 'package:janzer/database_screen.dart';
-import 'package:janzer/main_screen.dart';
 import 'package:janzer/maps_screen.dart';
 import 'package:janzer/settings_screen.dart';
 

@@ -12,21 +12,25 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     Icons.timelapse,
     Icons.date_range,
     Icons.timeline,
+    Icons.landscape,
+    Icons.cloud,
     Icons.today,
     Icons.gps_fixed,
-    Icons.satellite,
     Icons.av_timer,
     Icons.center_focus_weak,
     Icons.present_to_all,
     Icons.device_hub,
     Icons.data_usage,
     Icons.assistant_photo,
-    Icons.assistant_photo
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Janzer"),
+        backgroundColor: Colors.blueAccent,
+      ),
       body: new Container(
         child: FutureBuilder<List<DatabaseModel>>(
             future: getContactsFromDB(),
@@ -132,15 +136,17 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                             var snapshots = [
                             "Дата: "+ snapshot.data[index].moduleDate,
                             "Время: "+ snapshot.data[index].moduleTime,
-                            "День недели:" + snapshot.data[index].moduleDay,
-                            "GPS-Satellites: "+ snapshot.data[index].moduleDate,
-                            "GPS-Time: "+ snapshot.data[index].moduleDate,
-                            "GPS-Date: "+ snapshot.data[index].moduleDate,
-                            "Температура: "+ snapshot.data[index].moduleDate,
-                            "Давление: "+ snapshot.data[index].moduleDate,
-                            "Влажность: "+ snapshot.data[index].moduleDate,
-                            "Коэффицент пыли: "+ snapshot.data[index].moduleDate,
-                            "Радиоционный фон: "+ snapshot.data[index].moduleDate,
+                            "День недели: " + snapshot.data[index].moduleDay,
+                            "Широта: " + snapshot.data[index].latitude,
+                            "Долгота: " + snapshot.data[index].longitude,
+                            "GPS-Satellites: "+ snapshot.data[index].gpsSatellites,
+                            "GPS-Time: "+ snapshot.data[index].gpsTime,
+                            "GPS-Date: "+ snapshot.data[index].gpsDate,
+                            "Температура: "+ snapshot.data[index].temperature,
+                            "Давление: "+ snapshot.data[index].pressure,
+                            "Влажность: "+ snapshot.data[index].humidity,
+                            "Коэффицент пыли: "+ snapshot.data[index].dust,
+                            "Радиоционный фон: "+ snapshot.data[index].sievert,
                             ];
                             Future<void> future = showModalBottomSheet<void>(
                               context: context,
@@ -172,7 +178,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                                                         Icon(icons[index], color: Colors.white),
                                                         Padding(
                                                           padding: EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
-                                                          child: Text('${snapshot.data[index].moduleTime}', style: new TextStyle(color: Colors.white),),
+                                                          child: Text('${snapshots[index]}', style: new TextStyle(color: Colors.white),),
                                                         )
                                                       ],
                                                     ),
