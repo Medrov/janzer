@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:janzer/bottom_animation.dart';
-import 'package:janzer/database_screen.dart';
-import 'package:janzer/maps_screen.dart';
-import 'package:janzer/settings_screen.dart';
+import 'package:janzer/screens/bluetooth_screen.dart';
+import 'package:janzer/screens/settings_screen.dart';
+import 'package:janzer/utils/bottom_animation.dart';
+import 'package:janzer/screens/database_screen.dart';
+import 'package:janzer/screens/maps_screen.dart';
+
+
 
 class MainHandler extends StatefulWidget {
   @override
@@ -18,7 +21,7 @@ class _MainHandlerState extends State<MainHandler>
   var screens = [
     DatabaseScreen(),
     MapsDefaultScreen(),
-    SettingsScreen(),
+    BluetoothScreen()
   ];
 
   @override

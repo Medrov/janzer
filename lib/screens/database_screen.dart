@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:janzer/DBHelper.dart';
-import 'package:janzer/database_model.dart';
+import 'package:janzer/db/DBHelper.dart';
+import 'package:janzer/db/database_model.dart';
 class DatabaseScreen extends StatefulWidget {
   @override
   _DatabaseScreenState createState() => _DatabaseScreenState();

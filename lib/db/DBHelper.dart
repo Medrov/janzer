@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:janzer/database_model.dart';
+import 'package:janzer/db/database_model.dart';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';

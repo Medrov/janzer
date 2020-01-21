@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:janzer/DBHelper.dart';
-import 'package:janzer/database_model.dart';
-import 'package:janzer/database_screen.dart';
+import 'package:janzer/db/DBHelper.dart';
+import 'package:janzer/db/database_model.dart';
+import 'package:janzer/screens/database_screen.dart';
 import 'dart:async';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-
+import 'package:intl/intl.dart';
 class ListStructure {
   dynamic key;
   dynamic values;
@@ -51,19 +51,9 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
   List _masForUsing;
   double latitude;
   double longitude;
-  String realTime,
-      moduleDate,
-      moduleTime,
-      moduleDay,
-      gpsCoordinates,
-      gpsSatellites,
-      gpsTime,
-      gpsDate,
-      temperature,
-      pressure,
-      humidity,
-      dust,
-      sievert;
+  String realTime, moduleDate, moduleTime, moduleDay,
+  gpsCoordinates, gpsSatellites, gpsTime, gpsDate,
+  temperature, pressure, humidity, dust, sievert;
   int id;
   var numberOfLines;
   String readPath;
@@ -72,6 +62,11 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
   Map<int, double> coordinatesLatitude = new Map();
   Map<int, double> coordinatesLongitude = new Map();
   List<ListStructure> list = new List<ListStructure>();
+  String selectedDateStart = "";
+  String selectedDateFinish = "";
+  DateTime calendar = new DateTime.now();
+  var today;
+
   var icons = [
     Icons.timelapse,
     Icons.date_range,
@@ -98,6 +93,8 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
         .checkPermissionStatus(PermissionGroup.locationWhenInUse)
         .then(_updateStatus);
     _askPermission();
+    today = DateFormat('yyyy-MM-dd').format(calendar);
+    print(today);
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -147,13 +144,117 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
                   fontWeight: FontWeight.w500,
                   color: Colors.white,
                   fontSize: 16.0),
-              labelBackgroundColor: Colors.deepPurpleAccent)
+              labelBackgroundColor: Colors.deepPurpleAccent),
+          // FAB 3
+          SpeedDialChild(
+              child: Icon(Icons.color_lens),
+              backgroundColor: Colors.pink,
+              onTap: () async {
+                showFilterOrders();
+              },
+              label: 'Параметры',
+              labelStyle: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                  fontSize: 16.0),
+              labelBackgroundColor: Colors.pink)
         ],
       ),
     );
   }
+  Future<Null> _selectDate(BuildContext context, DateTime selectedDate) async {
+    final DateTime picked = await showDatePicker(
+        context: context,
+        initialDate: selectedDate,
+        firstDate: DateTime(2015, 8),
+        lastDate: DateTime(2101));
+    if (picked != null && picked != selectedDate)
+      setState(() {
+        selectedDate = picked;
+        print("It's selectedDate $selectedDate");
+      });
+  }
 
-  void showAlert(){
+  void showFilterOrders() {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return Container(
+            child: Column(
+              children: <Widget>[
+                Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child:
+                    Text('Параметры', style: TextStyle(fontSize: 26.0))),
+                Padding(
+                    padding: EdgeInsets.fromLTRB(8.0, 12.0, 8.0, 0.0),
+                    child: SizedBox(
+                      height: 45.0,
+                      child: RaisedButton(
+                        color: Colors.blueAccent,
+                        elevation: 5.0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.0)),
+                        child: Container(
+                          height: 45,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: selectedDateStart != today.toString() ?  new Text(
+                              'Начальная дата', style: TextStyle(color: Colors.white) ,
+                            ): Text(selectedDateStart.toString(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        onPressed: (){
+                          DateTime now = new DateTime.now();
+                          _selectDate(context, now);
+                          String selectedDateStart = DateFormat('yyyy-MM-dd').format(now);
+                          print(selectedDateStart);
+                        },
+                      ),
+                    )),
+                Padding(
+                    padding: EdgeInsets.fromLTRB(8.0, 12.0, 8.0, 0.0),
+                    child: SizedBox(
+                      height: 45.0,
+                      child: RaisedButton(
+                        color: Colors.blueAccent,
+                        elevation: 5.0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.0)),
+                        child: Container(
+                          height: 45,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: selectedDateFinish != today.toString() ?  new Text(
+                              'Конечная дата', style: TextStyle(color: Colors.white) ,
+                            ): Text(selectedDateFinish.toString(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        onPressed: (){
+                          DateTime now = DateTime.now();
+                          _selectDate(context, now);
+                          String selectedDateFinish = DateFormat('yyyy-MM-dd').format(now);
+                          print(selectedDateFinish);
+                        },
+                      ),
+                    )),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(8.0, 12.0, 8.0, 0.0),
+                  child: FloatingActionButton(
+                    backgroundColor: Colors.amber,
+                    child: Icon(Icons.search),
+                    onPressed: (){
+                      print("Fuck");
+                    },
+                  ),
+                )
+              ],
+            ),
+          );
+        });
+  }
+
+  void showAlert() {
     showDialog(
       context: context,
       builder: (BuildContext context) => new Dialog(
@@ -185,8 +286,7 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
                 ],
               ),
               child: Column(
-                mainAxisSize: MainAxisSize
-                    .min, // To make the card compact
+                mainAxisSize: MainAxisSize.min, // To make the card compact
                 children: <Widget>[
                   Text(
                     "Информация",
@@ -208,12 +308,10 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
                     alignment: Alignment.bottomCenter,
                     child: RaisedButton(
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(16.0)),
+                          borderRadius: BorderRadius.circular(16.0)),
                       color: Colors.blueAccent,
                       onPressed: () {
-                        Navigator.of(context)
-                            .pop(); // To close the dialog
+                        Navigator.of(context).pop(); // To close the dialog
                       },
                       child: Text(
                         "ОК",
@@ -224,7 +322,6 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
                 ],
               ),
             ),
-
           ],
         ),
       ),
@@ -232,33 +329,52 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
   }
 
   void gpsHelper(String text, int count) async {
-    List _masForUsingTime, _masForUsingFinal, _masForUsingFinalCordinates,
-        _masForGpsSatellites, _masForGpsTime, _masForGpsDate,
-        _masForTemperature, _masForPressure, _masForHumidity, _masForDust,
+    List _masForUsingTime,
+        _masForUsingFinal,
+        _masForUsingFinalCordinates,
+        _masForGpsSatellites,
+        _masForGpsTime,
+        _masForGpsDate,
+        _masForTemperature,
+        _masForPressure,
+        _masForHumidity,
+        _masForDust,
         _masForSievert;
-
+    var rng = new Random();
+    var rnglatitude = rng.nextDouble() * 0.036;
+    var rnglongitude = rng.nextDouble() * 0.05;
     LineSplitter ls = new LineSplitter();
     _masForUsing = ls.convert(text);
-    for(int i = 0; i < 11; i++)
-      print(_masForUsing[i]);
+    for (int i = 0; i < 11; i++) print(_masForUsing[i]);
     _masForUsingTime = _masForUsing[1].split(",");
-    moduleDate = _masForUsingTime[1]; moduleTime = _masForUsingTime[2]; moduleDay = _masForUsingTime[3];
-    if (moduleDay == " Mon") moduleDay = "Понедельник";
-    else if (moduleDay == " Tue") moduleDay = "Вторник";
-    else if (moduleDay == " Wed") moduleDay = "Среда";
-    else if (moduleDay == " Thu") moduleDay = "Четверг";
-    else if (moduleDay == " Fri") moduleDay = "Пятница";
-    else if (moduleDay == " Sat") moduleDay = "Суббота";
+    moduleDate = _masForUsingTime[1];
+    moduleTime = _masForUsingTime[2];
+    moduleDay = _masForUsingTime[3];
+    if (moduleDay == " Mon")
+      moduleDay = "Понедельник";
+    else if (moduleDay == " Tue")
+      moduleDay = "Вторник";
+    else if (moduleDay == " Wed")
+      moduleDay = "Среда";
+    else if (moduleDay == " Thu")
+      moduleDay = "Четверг";
+    else if (moduleDay == " Fri")
+      moduleDay = "Пятница";
+    else if (moduleDay == " Sat")
+      moduleDay = "Суббота";
     else if (moduleDay == " Sun") moduleDay = "Воскресенье";
-    print(moduleDate); print(moduleTime); print(moduleDay);
+    print(moduleDate);
+    print(moduleTime);
+    print(moduleDay);
     _masForUsingFinal = _masForUsing[2].split(":");
     _masForUsingFinalCordinates = _masForUsingFinal[1].split(";");
 
-    if(_masForUsingFinalCordinates[0] == " x" && _masForUsingFinalCordinates[1] == " x"){
+    if (_masForUsingFinalCordinates[0] == " x" &&
+        _masForUsingFinalCordinates[1] == " x") {
       return showAlert();
     } else {
-      latitude = double.parse(_masForUsingFinalCordinates[0]);
-      longitude = double.parse(_masForUsingFinalCordinates[1]);
+      latitude = double.parse(_masForUsingFinalCordinates[0]) + rnglatitude;
+      longitude = double.parse(_masForUsingFinalCordinates[1]) + rnglongitude;
       _masForGpsSatellites = _masForUsing[3].split(":");
       _masForGpsTime = _masForUsing[4].split(":");
       _masForGpsDate = _masForUsing[5].split(":");
@@ -275,9 +391,12 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
       humidity = _masForHumidity[1];
       dust = _masForDust[1];
       sievert = _masForSievert[1];
-      print(latitude); print(longitude);
+      print(latitude);
+      print(longitude);
+      sumbitContact();
     }
   }
+
   void sumbitContact() {
     var databaseModel = DatabaseModel();
     var dbHelper = DBHelper();
@@ -314,14 +433,6 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
     setState(() {
       _dataTxt = text;
       gpsHelper(_dataTxt, numberOfLines);
-      sumbitContact();
-    });
-  }
-
-  Future<void> openFile(String filePath) async {
-    final message = await OpenFile.open(filePath);
-    setState(() {
-      _dataTxt = message;
     });
   }
 
@@ -383,13 +494,15 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
       PermissionGroup.locationWhenInUse,
       PermissionGroup.location
     ]).then(_onStatusRequested);
-    PermissionHandler().requestPermissions([PermissionGroup.location]).then(_onStatusRequested);
+    PermissionHandler().requestPermissions([PermissionGroup.location]).then(
+        _onStatusRequested);
   }
 
   void _onStatusRequested(Map<PermissionGroup, PermissionStatus> value) {
     final status = value[PermissionGroup.locationWhenInUse];
     final statusLoc = value[PermissionGroup.location];
-    if (status != PermissionStatus.granted && statusLoc != PermissionStatus.granted) {
+    if (status != PermissionStatus.granted &&
+        statusLoc != PermissionStatus.granted) {
       PermissionHandler().openAppSettings();
     } else {
       _updateStatus(status);
@@ -402,70 +515,71 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
       context: context,
       builder: (BuildContext context) {
         return FutureBuilder(
-          future: getContactsFromDB(),
-          builder: (context, snapshot) {
-            if (snapshot.data != null && snapshot.hasData) {
-              var snapshots = [
-                "Дата: "+ snapshot.data[index].moduleDate,
-                "Время: "+ snapshot.data[index].moduleTime,
-                "День недели: " + snapshot.data[index].moduleDay,
-                "Широта: " + snapshot.data[index].latitude,
-                "Долгота: " + snapshot.data[index].longitude,
-                "GPS-Satellites: "+ snapshot.data[index].gpsSatellites,
-                "GPS-Time: "+ snapshot.data[index].gpsTime,
-                "GPS-Date: "+ snapshot.data[index].gpsDate,
-                "Температура: "+ snapshot.data[index].temperature,
-                "Давление: "+ snapshot.data[index].pressure,
-                "Влажность: "+ snapshot.data[index].humidity,
-                "Коэффицент пыли: "+ snapshot.data[index].dust,
-                "Радиоционный фон: "+ snapshot.data[index].sievert,
-              ];
-              return Container(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text(
-                            "Данные о месте",
-                            textAlign: TextAlign.center,
-                            style: new TextStyle(
-                                fontSize: 21.0,
-                                color: Colors.black
-                            )),
-                      ),
-                      Container(
-                          child: Column(
-                            children: List.generate(13, (int index) {
-                              return Card(
-                                color: Colors.lightBlueAccent,
-                                child: Container(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: Row(
-                                    children: <Widget>[
-                                      Icon(icons[index], color: Colors.white),
-                                      Padding(
-                                        padding: EdgeInsets.fromLTRB(16.0, 0.0, 0.0, 0.0),
-                                        child: Text('${snapshots[index]}', style: new TextStyle(color: Colors.white),),
-                                      )
-                                    ],
-                                  ),
+            future: getContactsFromDB(),
+            builder: (context, snapshot) {
+              if (snapshot.data != null && snapshot.hasData) {
+                var snapshots = [
+                  "Дата: " + snapshot.data[index].moduleDate,
+                  "Время: " + snapshot.data[index].moduleTime,
+                  "День недели: " + snapshot.data[index].moduleDay,
+                  "Широта: " + snapshot.data[index].latitude,
+                  "Долгота: " + snapshot.data[index].longitude,
+                  "GPS-Satellites: " + snapshot.data[index].gpsSatellites,
+                  "GPS-Time: " + snapshot.data[index].gpsTime,
+                  "GPS-Date: " + snapshot.data[index].gpsDate,
+                  "Температура: " + snapshot.data[index].temperature,
+                  "Давление: " + snapshot.data[index].pressure,
+                  "Влажность: " + snapshot.data[index].humidity,
+                  "Коэффицент пыли: " + snapshot.data[index].dust,
+                  "Радиоционный фон: " + snapshot.data[index].sievert,
+                ];
+                return Container(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text("Данные о месте",
+                              textAlign: TextAlign.center,
+                              style: new TextStyle(
+                                  fontSize: 21.0, color: Colors.black)),
+                        ),
+                        Container(
+                            child: Column(
+                          children: List.generate(13, (int index) {
+                            return Card(
+                              color: Colors.lightBlueAccent,
+                              child: Container(
+                                padding: EdgeInsets.all(16.0),
+                                child: Row(
+                                  children: <Widget>[
+                                    Icon(icons[index], color: Colors.white),
+                                    Padding(
+                                      padding: EdgeInsets.fromLTRB(
+                                          16.0, 0.0, 0.0, 0.0),
+                                      child: Text(
+                                        '${snapshots[index]}',
+                                        style:
+                                            new TextStyle(color: Colors.white),
+                                      ),
+                                    )
+                                  ],
                                 ),
-                              );
-                            }),
-                          ))
-                    ],
+                              ),
+                            );
+                          }),
+                        ))
+                      ],
+                    ),
                   ),
-                ),
+                );
+              }
+              return new Container(
+                alignment: AlignmentDirectional.center,
+                child: new CircularProgressIndicator(),
               );
-            }
-            return new Container(
-              alignment: AlignmentDirectional.center,
-              child: new CircularProgressIndicator(),
-            );
-          }
-        );
+            });
       },
     );
     future.then((void value) => _closeModal(value));
@@ -481,18 +595,17 @@ class _MapsDefaultScreenState extends State<MapsDefaultScreen>
       double longitude = double.parse(n.longitude);
       print(latitude);
       print(longitude);
-      LatLng point =
-          LatLng(latitude, longitude);
+      LatLng point = LatLng(latitude, longitude);
       MarkerId markerId = MarkerId("${n.latitude}, ${n.longitude}");
       return Marker(
           markerId: markerId,
           draggable: true,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           position: point,
           onTap: () {
             _showModal(n.id - 1);
           });
-
     }).toList();
     setState(() {
       _markers.clear();
